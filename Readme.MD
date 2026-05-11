@@ -17,9 +17,6 @@ role.
 
 - PostgreSQL 17.8 (Debian 17.8-1.pgdg13+1)
 - `anon` 2.0.0-3.0.13
-- Base image: `registry.gitlab.com/dalibo/postgresql_anonymizer:stable`
-
-
 
 ## Repository layout
 
