@@ -42,24 +42,19 @@ applied, so there is no `sleep` race.
 
 ## Observed behaviour
 
-- `table_owner` COPY: **all 14 columns succeed.**
-- `anon_user` SELECT: **all 14 columns succeed** (the masking SELECT path
+- `table_owner` COPY: **all 7 columns succeed.**
+- `anon_user` SELECT: **all 7 columns succeed** (the masking SELECT path
   quotes identifiers correctly).
-- `anon_user` COPY: the following 7 columns fail.
+- `anon_user` COPY:  **all 7 columns fail**
 
 | Column (SQL on wire, from PostgreSQL's `LINE 1:` echo) | Server response | What the rewrite produced |
 |---|---|---|
-| `example_column` | `syntax error at or near "312"` | bare integer `312` substituted for the identifier |
 | `"Example Column"` | `column "Example\ Column" does not exist` | space → `\<space>` |
 | `"col with  multiple   spaces"` | `column "col\ with\ \ multiple\ \ \ spaces" does not exist` | every space → `\<space>` |
 | `" leading_space"` | `column "\ leading_space" does not exist` | leading space → `\<space>` |
 | `"trailing_space "` | `column "trailing_space\ " does not exist` | trailing space → `\<space>` |
 | `"123abc"` | `column "\123abc" does not exist` | leading digit → `\123` |
 | `"col""with""quotes"` | `syntax error at or near "with"` | embedded `""` collapsed to `"`, identifier closes early |
-
-Columns that **work** under `anon_user` COPY: `"MixedCase"`, `"col!@#$%"`,
-`"naïve_café"`, `"select"`, `"col.with.dot"`, `"col-with-dash"`,
-`"col'with'apostrophe"`.
 
 ### `pg_dump` impact
 
@@ -68,7 +63,8 @@ Columns that **work** under `anon_user` COPY: `"MixedCase"`, `"col!@#$%"`,
 ```
 pg_dump: error: query failed: ERROR:  syntax error at or near "with"
 LINE 1: ...le_column, "Example Column", "MixedCase", "col!@#$%", "naïve...
-pg_dump: detail: Query was: COPY test_schema.test_table (id, example_column, "Example Column", … , "col""with""quotes", …) TO stdout;
+                                                             ^
+pg_dump: detail: Query was: COPY test_schema.test_table (id, example_column, "Example Column", "MixedCase", "col!@#$%", "naïve_café", "col""with""quotes", "select", "col.with.dot", "col-with-dash", "col'with'apostrophe", "123abc", "col with  multiple   spaces", " leading_space", "trailing_space ") TO stdout;
 ```
 
 Any table that contains a column matching the embedded-`""` shape cannot be

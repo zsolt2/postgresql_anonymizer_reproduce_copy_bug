@@ -13,16 +13,8 @@ psql -U postgres -d test_db -c 'SELECT anon.version();'
 # doubled per SQL identifier-quoting rules; the bash single-quoted strings
 # below pass the literal quoted identifier through to psql.
 COLUMNS=(
-  'example_column'
   '"Example Column"'
-  '"MixedCase"'
-  '"col!@#$%"'
-  '"naïve_café"'
   '"col""with""quotes"'
-  '"select"'
-  '"col.with.dot"'
-  '"col-with-dash"'
-  '"col'"'"'with'"'"'apostrophe"'
   '"123abc"'
   '"col with  multiple   spaces"'
   '" leading_space"'
