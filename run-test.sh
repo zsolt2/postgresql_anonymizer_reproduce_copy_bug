@@ -4,8 +4,13 @@ set -euo pipefail
 CONTAINER=anon-copy-repro
 IMAGE=anon-copy-repro
 
-docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-docker build -t "$IMAGE" .
+# Clean any container left behind by this script or a previously-renamed copy.
+docker rm -fv "$CONTAINER" >/dev/null 2>&1 || true
+
+# --pull forces Docker to re-check the FROM tag against the registry. Without
+# it, a stale base image (e.g. an old :3.0.5 cached months ago) is reused and
+# the anon version inside the container won't match the Dockerfile.
+docker build --pull -t "$IMAGE" .
 docker run --name "$CONTAINER" \
   -e POSTGRES_PASSWORD=postgres \
   -d "$IMAGE" >/dev/null
@@ -33,5 +38,11 @@ while :; do
   fi
   sleep 1
 done
+
+# Print the actual anon version the running container is using, so a
+# Dockerfile/base-image mismatch (e.g. cached :3.0.5 that still ships 2.0.0)
+# is visible in the output before the test runs.
+echo "anon version in container:"
+docker exec "$CONTAINER" psql -U postgres -d test_db -tAc 'SELECT anon.version();'
 
 docker exec "$CONTAINER" /test.sh
